@@ -21,7 +21,7 @@
   .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
   .btn-secondary { background: #eee; color: #222; border: 1px solid #ccc; }
   .btn-secondary:hover { background: #ddd; }
-  .btn-switch { background: #e8f0fe; color: #1a56db; border: 1px solid #b4c9f9; font-size: 14px; padding: 8px 14px; }
+  .btn-switch { background: #e8f0fe; color: #1a56db; border: 1px solid #b4c9f9; font-size: 14px; padding: 8px 14px; display: none; }
   .btn-switch:hover { background: #d0e2fd; }
   .btn-switch:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-copy { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; font-size: 16px; display: none; }
@@ -59,7 +59,7 @@
     <div class="label">📷 Kamera</div>
     <video id="video" autoplay playsinline></video>
     <img id="preview-img" alt="Aufgenommenes Foto" />
-    <div id="cam-label" class="cam-label">🔍 Rückkamera</div>
+    <div id="cam-label" class="cam-label">Kamera wird gestartet…</div>
     <div class="btn-row">
       <button class="btn-primary" id="btn-snap" onclick="snap()">📸 Foto aufnehmen</button>
       <button class="btn-switch" id="btn-switch" onclick="switchCamera()">🔄 Kamera wechseln</button>
@@ -95,10 +95,37 @@
 
   let lastNum = '';
   let currentStream = null;
-  // 'environment' = Rückkamera, 'user' = Frontkamera
+  let isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // Mobile: facingMode wechseln
   let currentFacing = 'environment';
 
-  async function startCam(facing) {
+  // Desktop: deviceId-Liste
+  let desktopCameras = [];
+  let desktopCamIndex = 0;
+
+  async function init() {
+    // Erst kurz Zugriff anfordern damit Labels sichtbar werden
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      tmp.getTracks().forEach(t => t.stop());
+    } catch(e) {}
+
+    if (!isMobile) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      desktopCameras = devices.filter(d => d.kind === 'videoinput');
+      if (desktopCameras.length > 1) {
+        document.getElementById('btn-switch').style.display = 'inline-block';
+      }
+    } else {
+      // Auf Mobilgeräten Wechsel-Button immer anzeigen
+      document.getElementById('btn-switch').style.display = 'inline-block';
+    }
+
+    await startCam();
+  }
+
+  async function startCam() {
     const btn = document.getElementById('btn-switch');
     btn.disabled = true;
 
@@ -107,43 +134,52 @@
       currentStream = null;
     }
 
-    const constraints = {
-      video: {
-        facingMode: { ideal: facing },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      },
-      audio: false
-    };
+    let constraints;
+    if (isMobile) {
+      constraints = {
+        video: { facingMode: { ideal: currentFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      };
+    } else {
+      const cam = desktopCameras[desktopCamIndex];
+      constraints = cam
+        ? { video: { deviceId: { exact: cam.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }
+        : { video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
+    }
 
     try {
       currentStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = currentStream;
-      currentFacing = facing;
-      document.getElementById('cam-label').textContent =
-        facing === 'environment' ? '🔍 Rückkamera' : '🤳 Frontkamera';
-    } catch(e) {
-      // Fallback: ohne facingMode versuchen
-      try {
-        currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        video.srcObject = currentStream;
-        document.getElementById('cam-label').textContent = '📷 Kamera';
-      } catch(e2) {
-        document.getElementById('cam-label').textContent = '⚠ Kamera nicht verfügbar';
-        alert('Kamera konnte nicht gestartet werden.\n\nAuf Android: Datei in Firefox öffnen (Menü → Datei öffnen).\nAuf Windows: Browsererlaubnis prüfen.');
+
+      // Label setzen
+      if (isMobile) {
+        document.getElementById('cam-label').textContent =
+          currentFacing === 'environment' ? '🔍 Rückkamera' : '🤳 Frontkamera';
+      } else {
+        const cam = desktopCameras[desktopCamIndex];
+        const label = cam ? (cam.label || ('Kamera ' + (desktopCamIndex + 1))) : 'Kamera';
+        const total = desktopCameras.length;
+        document.getElementById('cam-label').textContent =
+          '📷 ' + label + (total > 1 ? '  (' + (desktopCamIndex + 1) + '/' + total + ')' : '');
       }
+    } catch(e) {
+      document.getElementById('cam-label').textContent = '⚠ Kamera nicht verfügbar';
+      alert('Kamera konnte nicht gestartet werden.\nBitte Browsererlaubnis prüfen.');
     }
 
     btn.disabled = false;
   }
 
   async function switchCamera() {
-    const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
-    await startCam(newFacing);
+    if (isMobile) {
+      currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+    } else {
+      desktopCamIndex = (desktopCamIndex + 1) % desktopCameras.length;
+    }
+    await startCam();
   }
 
-  // Start
-  startCam('environment');
+  init();
 
   function snap() {
     canvas.width = video.videoWidth || 1280;
@@ -165,7 +201,8 @@
     video.style.display = 'block';
     document.getElementById('cam-label').style.display = 'block';
     document.getElementById('btn-snap').style.display = 'inline-block';
-    document.getElementById('btn-switch').style.display = 'inline-block';
+    document.getElementById('btn-switch').style.display =
+      (isMobile || desktopCameras.length > 1) ? 'inline-block' : 'none';
     document.getElementById('btn-retry').style.display = 'none';
     document.getElementById('result-card').style.display = 'none';
     document.getElementById('spinner').classList.remove('active');
