@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beleg-Nr. Scanner (Kostenlos)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #222; min-height: 100vh; }
+  .container { max-width: 620px; margin: 0 auto; padding: 2rem 1rem; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+  .label { font-size: 13px; color: #666; margin-bottom: 8px; }
+  video, #preview-img { width: 100%; border-radius: 8px; background: #eee; display: block; }
+  #preview-img { display: none; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  button { cursor: pointer; border-radius: 8px; font-size: 15px; font-weight: 500; padding: 10px 20px; border: none; }
+  .btn-primary { background: #222; color: #fff; }
+  .btn-primary:hover { background: #444; }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-secondary { background: #eee; color: #222; border: 1px solid #ccc; }
+  .btn-secondary:hover { background: #ddd; }
+  .btn-switch { background: #e8f0fe; color: #1a56db; border: 1px solid #b4c9f9; font-size: 14px; padding: 8px 14px; }
+  .btn-switch:hover { background: #d0e2fd; }
+  .btn-switch:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-copy { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; font-size: 16px; display: none; }
+  .btn-copy:hover { background: #c3e6cb; }
+  .result-num { font-size: 38px; font-weight: 700; letter-spacing: 3px; margin: 10px 0; color: #222; word-break: break-all; }
+  .badge { display: inline-block; font-size: 12px; padding: 3px 12px; border-radius: 6px; margin-top: 4px; }
+  .badge-ok { background: #d4edda; color: #155724; }
+  .badge-warn { background: #fff3cd; color: #856404; }
+  .badge-err { background: #f8d7da; color: #721c24; }
+  #result-card { display: none; }
+  #spinner { display: none; flex-direction: column; gap: 8px; padding: 0.75rem 0; }
+  #spinner.active { display: flex; }
+  .spinner-row { display: flex; align-items: center; gap: 10px; color: #666; font-size: 15px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; display: inline-block; font-size: 20px; }
+  .hint { font-size: 13px; color: #888; margin-top: 8px; }
+  progress { width: 100%; height: 6px; border-radius: 3px; border: none; }
+  progress::-webkit-progress-bar { background: #eee; border-radius: 3px; }
+  progress::-webkit-progress-value { background: #222; border-radius: 3px; }
+  #progress-bar { display: none; }
+  .tip-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #5d4037; margin-bottom: 1rem; }
+  .cam-label { font-size: 12px; color: #888; margin-top: 6px; text-align: center; min-height: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📄 Beleg-Nr. Scanner</h1>
+  <div class="subtitle">100% kostenlos · läuft lokal · kein Internet nötig</div>
+
+  <div class="tip-box">
+    💡 <strong>Tipp für beste Ergebnisse:</strong> Dokument gerade halten, gut beleuchten und die Kamera nah genug ran halten, sodass der Text gut lesbar ist.
+  </div>
+
+  <div class="card">
+    <div class="label">📷 Kamera</div>
+    <video id="video" autoplay playsinline></video>
+    <img id="preview-img" alt="Aufgenommenes Foto" />
+    <div id="cam-label" class="cam-label">🔍 Rückkamera</div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-snap" onclick="snap()">📸 Foto aufnehmen</button>
+      <button class="btn-switch" id="btn-switch" onclick="switchCamera()">🔄 Kamera wechseln</button>
+      <button class="btn-secondary" id="btn-retry" onclick="retry()" style="display:none;">↩ Neu aufnehmen</button>
+    </div>
+  </div>
+
+  <div id="spinner">
+    <div class="spinner-row"><span class="spin">⟳</span> <span id="spinner-text">Text wird erkannt…</span></div>
+    <div id="progress-bar"><progress id="progress" value="0" max="100"></progress></div>
+  </div>
+
+  <div class="card" id="result-card">
+    <div class="label">Erkannte Beleg-Nr.</div>
+    <div id="result-num" class="result-num">—</div>
+    <div id="result-badge"></div>
+    <div class="btn-row">
+      <button class="btn-copy" id="btn-copy" onclick="copyNum()">📋 In Zwischenablage kopieren</button>
+    </div>
+    <div class="hint" id="copy-hint"></div>
+    <div id="raw-text-box" style="display:none; margin-top:12px;">
+      <div class="label">Vollständig erkannter Text (zur Kontrolle):</div>
+      <textarea id="raw-text" style="width:100%;height:80px;font-size:12px;border:1px solid #ddd;border-radius:6px;padding:6px;resize:vertical;font-family:monospace;" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  const preview = document.getElementById('preview-img');
+
+  let lastNum = '';
+  let currentStream = null;
+  // 'environment' = Rückkamera, 'user' = Frontkamera
+  let currentFacing = 'environment';
+
+  async function startCam(facing) {
+    const btn = document.getElementById('btn-switch');
+    btn.disabled = true;
+
+    if (currentStream) {
+      currentStream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+    }
+
+    const constraints = {
+      video: {
+        facingMode: { ideal: facing },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
+      audio: false
+    };
+
+    try {
+      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = currentStream;
+      currentFacing = facing;
+      document.getElementById('cam-label').textContent =
+        facing === 'environment' ? '🔍 Rückkamera' : '🤳 Frontkamera';
+    } catch(e) {
+      // Fallback: ohne facingMode versuchen
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = currentStream;
+        document.getElementById('cam-label').textContent = '📷 Kamera';
+      } catch(e2) {
+        document.getElementById('cam-label').textContent = '⚠ Kamera nicht verfügbar';
+        alert('Kamera konnte nicht gestartet werden.\n\nAuf Android: Datei in Firefox öffnen (Menü → Datei öffnen).\nAuf Windows: Browsererlaubnis prüfen.');
+      }
+    }
+
+    btn.disabled = false;
+  }
+
+  async function switchCamera() {
+    const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
+    await startCam(newFacing);
+  }
+
+  // Start
+  startCam('environment');
+
+  function snap() {
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.97);
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('cam-label').style.display = 'none';
+    document.getElementById('btn-snap').style.display = 'none';
+    document.getElementById('btn-switch').style.display = 'none';
+    document.getElementById('btn-retry').style.display = 'inline-block';
+    analyzeImage(dataUrl);
+  }
+
+  function retry() {
+    preview.style.display = 'none';
+    video.style.display = 'block';
+    document.getElementById('cam-label').style.display = 'block';
+    document.getElementById('btn-snap').style.display = 'inline-block';
+    document.getElementById('btn-switch').style.display = 'inline-block';
+    document.getElementById('btn-retry').style.display = 'none';
+    document.getElementById('result-card').style.display = 'none';
+    document.getElementById('spinner').classList.remove('active');
+    document.getElementById('progress-bar').style.display = 'none';
+    document.getElementById('copy-hint').textContent = '';
+    document.getElementById('raw-text-box').style.display = 'none';
+    lastNum = '';
+  }
+
+  function extractBelegNr(text) {
+    const patterns = [
+      /Beleg[-.\s]*Nr\.{2,}\s*([A-Z0-9][\w\-\/\.]+)/i,
+      /Beleg[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
+      /Beleg[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
+    ];
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m && m[1] && m[1].length >= 2) return m[1].trim();
+    }
+    return null;
+  }
+
+  async function analyzeImage(dataUrl) {
+    document.getElementById('spinner').classList.add('active');
+    document.getElementById('progress-bar').style.display = 'block';
+    document.getElementById('result-card').style.display = 'none';
+    document.getElementById('spinner-text').textContent = 'OCR wird geladen…';
+
+    try {
+      const result = await Tesseract.recognize(dataUrl, 'deu', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            document.getElementById('spinner-text').textContent = 'Text wird erkannt…';
+            document.getElementById('progress').value = Math.round(m.progress * 100);
+          } else if (m.status === 'loading tesseract core') {
+            document.getElementById('spinner-text').textContent = 'OCR-Engine wird geladen…';
+          } else if (m.status === 'loading language traineddata') {
+            document.getElementById('spinner-text').textContent = 'Sprachdaten werden geladen…';
+          }
+        }
+      });
+
+      const rawText = result.data.text;
+      document.getElementById('spinner').classList.remove('active');
+      document.getElementById('progress-bar').style.display = 'none';
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('raw-text').value = rawText;
+
+      const nummer = extractBelegNr(rawText);
+
+      if (nummer) {
+        lastNum = nummer;
+        document.getElementById('result-num').textContent = nummer;
+        document.getElementById('result-badge').innerHTML = '<span class="badge badge-ok">✓ Erkannt</span>';
+        document.getElementById('btn-copy').style.display = 'inline-block';
+        document.getElementById('copy-hint').textContent = '';
+        document.getElementById('raw-text-box').style.display = 'none';
+      } else {
+        document.getElementById('result-num').textContent = '—';
+        document.getElementById('result-badge').innerHTML = '<span class="badge badge-warn">⚠ Beleg-Nr. nicht gefunden</span>';
+        document.getElementById('btn-copy').style.display = 'none';
+        document.getElementById('copy-hint').textContent = 'Tipp: Neu aufnehmen – Dokument gerade halten und gut beleuchten.';
+        document.getElementById('raw-text-box').style.display = 'block';
+      }
+
+    } catch(err) {
+      document.getElementById('spinner').classList.remove('active');
+      document.getElementById('progress-bar').style.display = 'none';
+      document.getElementById('result-card').style.display = 'block';
+      document.getElementById('result-num').textContent = '—';
+      document.getElementById('result-badge').innerHTML = '<span class="badge badge-err">✗ Fehler: ' + err.message + '</span>';
+      document.getElementById('btn-copy').style.display = 'none';
+    }
+  }
+
+  async function copyNum() {
+    if (!lastNum) return;
+    try {
+      await navigator.clipboard.writeText(lastNum);
+      document.getElementById('copy-hint').textContent = '✓ In Zwischenablage kopiert! Jetzt in Excel einfügen (Strg+V).';
+      setTimeout(() => { document.getElementById('copy-hint').textContent = ''; }, 4000);
+    } catch(e) {
+      document.getElementById('copy-hint').textContent = 'Manuell kopieren: ' + lastNum;
+    }
+  }
+</script>
+</body>
+</html>
