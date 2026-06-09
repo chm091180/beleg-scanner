@@ -3,291 +3,908 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beleg-Nr. Scanner (Kostenlos)</title>
+<title>AWT Logistik Scanner</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #222; min-height: 100vh; }
-  .container { max-width: 620px; margin: 0 auto; padding: 2rem 1rem; }
-  h1 { font-size: 22px; font-weight: 600; margin-bottom: 0.25rem; }
-  .subtitle { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
-  .card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
-  .label { font-size: 13px; color: #666; margin-bottom: 8px; }
-  video, #preview-img { width: 100%; border-radius: 8px; background: #eee; display: block; }
-  #preview-img { display: none; }
-  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-  button { cursor: pointer; border-radius: 8px; font-size: 15px; font-weight: 500; padding: 10px 20px; border: none; }
-  .btn-primary { background: #222; color: #fff; }
-  .btn-primary:hover { background: #444; }
-  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
-  .btn-secondary { background: #eee; color: #222; border: 1px solid #ccc; }
-  .btn-secondary:hover { background: #ddd; }
-  .btn-switch { background: #e8f0fe; color: #1a56db; border: 1px solid #b4c9f9; font-size: 14px; padding: 8px 14px; display: none; }
-  .btn-switch:hover { background: #d0e2fd; }
-  .btn-switch:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-copy { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; font-size: 16px; display: none; }
-  .btn-copy:hover { background: #c3e6cb; }
-  .result-num { font-size: 38px; font-weight: 700; letter-spacing: 3px; margin: 10px 0; color: #222; word-break: break-all; }
-  .badge { display: inline-block; font-size: 12px; padding: 3px 12px; border-radius: 6px; margin-top: 4px; }
-  .badge-ok { background: #d4edda; color: #155724; }
-  .badge-warn { background: #fff3cd; color: #856404; }
-  .badge-err { background: #f8d7da; color: #721c24; }
-  #result-card { display: none; }
-  #spinner { display: none; flex-direction: column; gap: 8px; padding: 0.75rem 0; }
-  #spinner.active { display: flex; }
-  .spinner-row { display: flex; align-items: center; gap: 10px; color: #666; font-size: 15px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spin { animation: spin 1s linear infinite; display: inline-block; font-size: 20px; }
-  .hint { font-size: 13px; color: #888; margin-top: 8px; }
-  progress { width: 100%; height: 6px; border-radius: 3px; border: none; }
-  progress::-webkit-progress-bar { background: #eee; border-radius: 3px; }
-  progress::-webkit-progress-value { background: #222; border-radius: 3px; }
-  #progress-bar { display: none; }
-  .tip-box { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #5d4037; margin-bottom: 1rem; }
-  .cam-label { font-size: 12px; color: #888; margin-top: 6px; text-align: center; min-height: 16px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f2f5; color: #222; min-height: 100vh; }
+
+/* NAV */
+.nav { background: #1a1a2e; color: #fff; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.nav h1 { font-size: 17px; font-weight: 700; flex: 1; }
+.nav button { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+.nav button.active { background: #e94560; border-color: #e94560; }
+.nav button:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+/* PAGES */
+.page { display: none; max-width: 680px; margin: 0 auto; padding: 1.25rem 1rem; }
+.page.active { display: block; }
+
+/* CARDS */
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+.card-title { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* BADGES */
+.badge { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+.badge-ok { background: #d4edda; color: #155724; }
+.badge-warn { background: #fff3cd; color: #856404; }
+.badge-err { background: #f8d7da; color: #721c24; }
+.badge-info { background: #cce5ff; color: #004085; }
+.badge-gray { background: #e2e3e5; color: #383d41; }
+
+/* BUTTONS */
+button { cursor: pointer; }
+.btn { border-radius: 8px; font-size: 15px; font-weight: 600; padding: 11px 20px; border: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn-dark { background: #1a1a2e; color: #fff; }
+.btn-dark:hover { background: #2d2d44; }
+.btn-dark:disabled { background: #aaa; cursor: not-allowed; }
+.btn-red { background: #e94560; color: #fff; }
+.btn-red:hover { background: #c73652; }
+.btn-green { background: #28a745; color: #fff; }
+.btn-green:hover { background: #218838; }
+.btn-outline { background: #fff; color: #333; border: 1px solid #ccc; }
+.btn-outline:hover { background: #f5f5f5; }
+.btn-blue { background: #0066cc; color: #fff; }
+.btn-blue:hover { background: #0052a3; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* INPUTS */
+input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; font-family: Arial, sans-serif; }
+input:focus, select:focus { outline: none; border-color: #0066cc; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; font-weight: 600; }
+
+/* CAMERA */
+video, #cam-preview { width: 100%; border-radius: 8px; background: #111; display: block; max-height: 300px; object-fit: cover; }
+#cam-preview { display: none; }
+.cam-label { font-size: 12px; color: #888; margin-top: 5px; text-align: center; }
+
+/* STEPS */
+.step-indicator { display: flex; gap: 0; margin-bottom: 1.25rem; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+.step { flex: 1; padding: 10px 6px; text-align: center; font-size: 12px; font-weight: 600; background: #f8f8f8; color: #aaa; border-right: 1px solid #ddd; }
+.step:last-child { border-right: none; }
+.step.active { background: #1a1a2e; color: #fff; }
+.step.done { background: #28a745; color: #fff; }
+
+/* ITEM LISTS */
+.item-list { list-style: none; }
+.item-list li { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; background: #f8f9fa; margin-bottom: 6px; font-size: 14px; gap: 8px; }
+.item-list li .item-label { flex: 1; font-weight: 600; }
+.item-list li .item-sub { font-size: 12px; color: #888; }
+.item-list li button { background: none; border: none; color: #cc0000; font-size: 18px; padding: 0 4px; cursor: pointer; }
+
+/* SEARCH TABLE */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { background: #1a1a2e; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+.tbl tr:hover td { background: #f5f7ff; }
+
+/* SPINNER */
+.spinner-wrap { display: none; align-items: center; gap: 10px; color: #666; font-size: 14px; padding: 8px 0; }
+.spinner-wrap.active { display: flex; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; display: inline-block; font-size: 20px; }
+
+/* PROGRESS */
+progress { width: 100%; height: 5px; border-radius: 3px; border: none; margin-top: 4px; }
+progress::-webkit-progress-bar { background: #eee; border-radius: 3px; }
+progress::-webkit-progress-value { background: #0066cc; border-radius: 3px; }
+
+/* ALERTS */
+.alert { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; display: none; }
+.alert.show { display: block; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.alert-info { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+
+/* SETTINGS */
+.settings-info { font-size: 13px; color: #888; margin-top: 5px; }
+.settings-info a { color: #0066cc; }
+
+/* DIVIDER */
+.divider { border: none; border-top: 1px solid #eee; margin: 1rem 0; }
+
+/* WAGEN HEADER */
+.wagen-header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.wagen-id { font-size: 26px; font-weight: 700; letter-spacing: 2px; }
+.wagen-sub { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+
+/* MANUAL TAG */
+.manual-tag { display: inline-block; background: #fff3cd; color: #856404; font-size: 11px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; font-weight: 600; }
+
+/* SPLIT BADGE */
+.split-badge { display: inline-block; background: #cce5ff; color: #004085; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>📄 Beleg-Nr. Scanner</h1>
-  <div class="subtitle">100% kostenlos · läuft lokal · kein Internet nötig</div>
 
-  <div class="tip-box">
-    💡 <strong>Tipp für beste Ergebnisse:</strong> Dokument gerade halten, gut beleuchten und die Kamera nah genug ran halten, sodass der Text gut lesbar ist.
+<div class="nav">
+  <h1>📦 AWT Logistik</h1>
+  <button onclick="showPage('scan')" id="nav-scan" class="active">Scannen</button>
+  <button onclick="showPage('search')" id="nav-search">Suche</button>
+  <button onclick="showPage('edit')" id="nav-edit">Bearbeiten</button>
+  <button onclick="showPage('settings')" id="nav-settings">⚙ Einstellungen</button>
+</div>
+
+<!-- ==================== SCAN PAGE ==================== -->
+<div class="page active" id="page-scan">
+
+  <div class="step-indicator">
+    <div class="step active" id="step1">1 Wagen</div>
+    <div class="step" id="step2">2 Belege</div>
+    <div class="step" id="step3">3 Durchläufer</div>
+    <div class="step" id="step4">4 Abschluss</div>
   </div>
 
+  <div id="alert-scan" class="alert"></div>
+
+  <!-- STEP 1: WAGEN -->
+  <div id="view-step1">
+    <div class="card">
+      <div class="card-title">🚐 AWT-Wagen scannen</div>
+      <video id="video-wagen" autoplay playsinline></video>
+      <img id="cam-preview-wagen" style="width:100%;border-radius:8px;display:none;max-height:300px;object-fit:cover;" />
+      <div class="cam-label" id="cam-label-wagen">Kamera wird gestartet…</div>
+      <div class="btn-row">
+        <button class="btn btn-dark" onclick="snapWagen()">📸 Barcode scannen</button>
+        <button class="btn btn-outline btn-sm" id="btn-switch-wagen" onclick="switchCam('wagen')" style="display:none;">🔄</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">✏️ Oder manuell eingeben</div>
+      <div class="field">
+        <label>AWT-Wagen ID</label>
+        <input type="text" id="manual-wagen" placeholder="z.B. AWT-3X92B" />
+      </div>
+      <button class="btn btn-dark" onclick="confirmWagen()">Wagen bestätigen →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: BELEGE -->
+  <div id="view-step2" style="display:none;">
+    <div id="wagen-header-2" class="wagen-header"></div>
+    <div class="card">
+      <div class="card-title">📋 Kommissionierbeleg scannen</div>
+      <video id="video-beleg" autoplay playsinline></video>
+      <img id="cam-preview-beleg" style="width:100%;border-radius:8px;display:none;max-height:300px;object-fit:cover;" />
+      <div class="cam-label" id="cam-label-beleg"></div>
+      <div class="spinner-wrap" id="spinner-beleg">
+        <span class="spin">⟳</span> <span id="spinner-beleg-text">OCR läuft…</span>
+        <progress id="prog-beleg" value="0" max="100"></progress>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-dark" id="btn-snap-beleg" onclick="snapBeleg()">📸 Beleg scannen</button>
+        <button class="btn btn-outline btn-sm" id="btn-switch-beleg" onclick="switchCam('beleg')" style="display:none;">🔄</button>
+        <button class="btn btn-outline btn-sm" id="btn-retry-beleg" onclick="retryBeleg()" style="display:none;">↩ Neu</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">✏️ Oder manuell</div>
+      <div class="field"><label>Beleg-Nr.</label><input type="text" id="manual-beleg-nr" placeholder="Beleg-Nr." /></div>
+      <div class="field"><label>AWT-Nr. (optional)</label><input type="text" id="manual-beleg-awt" placeholder="AWT-Nr." /></div>
+      <button class="btn btn-outline" onclick="addBelegManual()">+ Beleg hinzufügen</button>
+    </div>
+    <div class="card" id="beleg-list-card" style="display:none;">
+      <div class="card-title">Erfasste Belege</div>
+      <ul class="item-list" id="beleg-list"></ul>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="goStep3()">Weiter zu Durchläufern →</button>
+      <button class="btn btn-outline" onclick="goStep3()">Keine Durchläufer, direkt abschließen</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: DURCHLÄUFER -->
+  <div id="view-step3" style="display:none;">
+    <div id="wagen-header-3" class="wagen-header"></div>
+    <div class="card">
+      <div class="card-title">🟡 Durchläufer-Etikett scannen</div>
+      <video id="video-dl" autoplay playsinline></video>
+      <img id="cam-preview-dl" style="width:100%;border-radius:8px;display:none;max-height:300px;object-fit:cover;" />
+      <div class="cam-label" id="cam-label-dl"></div>
+      <div class="spinner-wrap" id="spinner-dl">
+        <span class="spin">⟳</span> <span id="spinner-dl-text">OCR läuft…</span>
+        <progress id="prog-dl" value="0" max="100"></progress>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-dark" id="btn-snap-dl" onclick="snapDL()">📸 Etikett scannen</button>
+        <button class="btn btn-outline btn-sm" id="btn-switch-dl" onclick="switchCam('dl')" style="display:none;">🔄</button>
+        <button class="btn btn-outline btn-sm" id="btn-retry-dl" onclick="retryDL()" style="display:none;">↩ Neu</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">✏️ Oder manuell</div>
+      <div class="field"><label>AWT-Nummer (vom Etikett)</label><input type="text" id="manual-dl-awt" placeholder="AWT-Nummer" /></div>
+      <div class="field"><label>Bestellnummer (beginnt mit 450)</label><input type="text" id="manual-dl-best" placeholder="450..." /></div>
+      <button class="btn btn-outline" onclick="addDLManual()">+ Durchläufer hinzufügen</button>
+    </div>
+    <div class="card" id="dl-list-card" style="display:none;">
+      <div class="card-title">Erfasste Durchläufer</div>
+      <ul class="item-list" id="dl-list"></ul>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="goStep4()">Abschließen & Speichern →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: ABSCHLUSS -->
+  <div id="view-step4" style="display:none;">
+    <div class="card" style="text-align:center; padding: 2rem;">
+      <div style="font-size: 60px; margin-bottom: 1rem;">✅</div>
+      <div style="font-size: 20px; font-weight: 700; margin-bottom: 0.5rem;">Erfolgreich gespeichert!</div>
+      <div id="summary-text" style="font-size: 14px; color: #666; margin-bottom: 1.5rem;"></div>
+      <button class="btn btn-dark" onclick="resetScan()">Neuen Wagen erfassen</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== SEARCH PAGE ==================== -->
+<div class="page" id="page-search">
   <div class="card">
-    <div class="label">📷 Kamera</div>
-    <video id="video" autoplay playsinline></video>
-    <img id="preview-img" alt="Aufgenommenes Foto" />
-    <div id="cam-label" class="cam-label">Kamera wird gestartet…</div>
-    <div class="btn-row">
-      <button class="btn-primary" id="btn-snap" onclick="snap()">📸 Foto aufnehmen</button>
-      <button class="btn-switch" id="btn-switch" onclick="switchCamera()">🔄 Kamera wechseln</button>
-      <button class="btn-secondary" id="btn-retry" onclick="retry()" style="display:none;">↩ Neu aufnehmen</button>
+    <div class="card-title">🔍 Suche</div>
+    <div class="field">
+      <label>Beleg-Nr., AWT-Nr., Bestellnummer oder Wagen-ID</label>
+      <input type="text" id="search-input" placeholder="Suchbegriff eingeben…" oninput="doSearch()" />
     </div>
   </div>
+  <div id="search-results"></div>
+</div>
 
-  <div id="spinner">
-    <div class="spinner-row"><span class="spin">⟳</span> <span id="spinner-text">Text wird erkannt…</span></div>
-    <div id="progress-bar"><progress id="progress" value="0" max="100"></progress></div>
+<!-- ==================== EDIT PAGE ==================== -->
+<div class="page" id="page-edit">
+  <div class="card">
+    <div class="card-title">✏️ Datensatz bearbeiten</div>
+    <div class="field">
+      <label>Wagen-ID oder Beleg-Nr. suchen</label>
+      <input type="text" id="edit-search" placeholder="z.B. AWT-3X92B" oninput="doEditSearch()" />
+    </div>
   </div>
+  <div id="edit-results"></div>
+  <div id="edit-form" style="display:none;">
+    <div class="card">
+      <div class="card-title">Datensatz bearbeiten</div>
+      <div id="edit-form-inner"></div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="saveEdit()">💾 Speichern</button>
+        <button class="btn btn-red btn-sm" onclick="deleteRecord()">🗑 Löschen</button>
+        <button class="btn btn-outline btn-sm" onclick="cancelEdit()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <div class="card" id="result-card">
-    <div class="label">Erkannte Beleg-Nr.</div>
-    <div id="result-num" class="result-num">—</div>
-    <div id="result-badge"></div>
-    <div class="btn-row">
-      <button class="btn-copy" id="btn-copy" onclick="copyNum()">📋 In Zwischenablage kopieren</button>
+<!-- ==================== SETTINGS PAGE ==================== -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="card-title">⚙ GitHub Einstellungen</div>
+    <div class="field">
+      <label>GitHub Personal Access Token</label>
+      <input type="password" id="gh-token" placeholder="ghp_..." />
     </div>
-    <div class="hint" id="copy-hint"></div>
-    <div id="raw-text-box" style="display:none; margin-top:12px;">
-      <div class="label">Vollständig erkannter Text (zur Kontrolle):</div>
-      <textarea id="raw-text" style="width:100%;height:80px;font-size:12px;border:1px solid #ddd;border-radius:6px;padding:6px;resize:vertical;font-family:monospace;" readonly></textarea>
+    <div class="field">
+      <label>GitHub Benutzername</label>
+      <input type="text" id="gh-user" placeholder="dein-username" />
     </div>
+    <div class="field">
+      <label>Repository Name</label>
+      <input type="text" id="gh-repo" placeholder="beleg-scanner" />
+    </div>
+    <button class="btn btn-dark" onclick="saveSettings()">💾 Speichern</button>
+    <div class="settings-info" style="margin-top:10px;">
+      Token erstellen unter <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → Classic Token → Haken bei <strong>repo</strong>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Datenbank initialisieren</div>
+    <p style="font-size:14px;color:#666;margin-bottom:12px;">Erstellt die Datei <code>daten.json</code> im Repository (nur einmalig nötig).</p>
+    <button class="btn btn-blue" onclick="initDB()">🗄 Datenbank anlegen</button>
+    <div id="init-result" style="margin-top:10px;font-size:14px;"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-  const video = document.getElementById('video');
-  const canvas = document.createElement('canvas');
-  const preview = document.getElementById('preview-img');
+// ===================== STATE =====================
+let currentPage = 'scan';
+let scanState = {
+  wagenId: '',
+  belege: [],   // {belegNr, awtNr, manual}
+  durchlaufer: [] // {awtNr, bestellNr, packstuck, manual}
+};
 
-  let lastNum = '';
-  let currentStream = null;
-  let isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Camera state per view
+let streams = { wagen: null, beleg: null, dl: null };
+let facings = { wagen: 'environment', beleg: 'environment', dl: 'environment' };
+let isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let desktopCams = [];
+let desktopIdxs = { wagen: 0, beleg: 0, dl: 0 };
 
-  // Mobile: facingMode wechseln
-  let currentFacing = 'environment';
+// GitHub
+let ghConfig = { token: '', user: '', repo: '' };
+let dbSha = '';
+let dbData = [];
+let editingIdx = -1;
 
-  // Desktop: deviceId-Liste
-  let desktopCameras = [];
-  let desktopCamIndex = 0;
+// ===================== NAV =====================
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + p).classList.add('active');
+  currentPage = p;
+  if (p === 'search') renderSearchResults('');
+  if (p === 'edit') { document.getElementById('edit-form').style.display = 'none'; }
+  if (p === 'settings') loadSettings();
+  if (p === 'scan' && !streams.wagen) initCam('wagen');
+}
 
-  async function init() {
-    // Erst kurz Zugriff anfordern damit Labels sichtbar werden
-    try {
-      const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      tmp.getTracks().forEach(t => t.stop());
-    } catch(e) {}
+// ===================== SETTINGS =====================
+function loadSettings() {
+  const s = JSON.parse(localStorage.getItem('awt_config') || '{}');
+  ghConfig = { token: s.token || '', user: s.user || '', repo: s.repo || '' };
+  document.getElementById('gh-token').value = ghConfig.token;
+  document.getElementById('gh-user').value = ghConfig.user;
+  document.getElementById('gh-repo').value = ghConfig.repo;
+}
 
-    if (!isMobile) {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      desktopCameras = devices.filter(d => d.kind === 'videoinput');
-      if (desktopCameras.length > 1) {
-        document.getElementById('btn-switch').style.display = 'inline-block';
+function saveSettings() {
+  ghConfig.token = document.getElementById('gh-token').value.trim();
+  ghConfig.user = document.getElementById('gh-user').value.trim();
+  ghConfig.repo = document.getElementById('gh-repo').value.trim();
+  localStorage.setItem('awt_config', JSON.stringify(ghConfig));
+  alert('Einstellungen gespeichert!');
+}
+
+// ===================== GITHUB API =====================
+async function ghGet(path) {
+  const r = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${path}`, {
+    headers: { 'Authorization': 'token ' + ghConfig.token, 'Accept': 'application/vnd.github.v3+json' }
+  });
+  return r.json();
+}
+
+async function ghPut(path, content, sha, message) {
+  const body = { message, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: sha || undefined };
+  if (!sha) delete body.sha;
+  const r = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { 'Authorization': 'token ' + ghConfig.token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+async function loadDB() {
+  try {
+    const res = await ghGet('daten.json');
+    dbSha = res.sha;
+    dbData = JSON.parse(decodeURIComponent(escape(atob(res.content.replace(/\n/g,'')))));
+  } catch(e) {
+    dbData = [];
+    dbSha = '';
+  }
+}
+
+async function saveDB(message) {
+  const res = await ghPut('daten.json', dbData, dbSha, message);
+  if (res.content) dbSha = res.content.sha;
+  return res;
+}
+
+async function initDB() {
+  const cfg = JSON.parse(localStorage.getItem('awt_config') || '{}');
+  ghConfig = { token: cfg.token || '', user: cfg.user || '', repo: cfg.repo || '' };
+  if (!ghConfig.token || !ghConfig.user || !ghConfig.repo) {
+    document.getElementById('init-result').innerHTML = '<span style="color:red;">⚠ Bitte zuerst Einstellungen speichern!</span>';
+    return;
+  }
+  document.getElementById('init-result').textContent = 'Wird angelegt…';
+  dbData = [];
+  dbSha = '';
+  const res = await ghPut('daten.json', [], '', 'Datenbank initialisiert');
+  if (res.content) {
+    dbSha = res.content.sha;
+    document.getElementById('init-result').innerHTML = '<span style="color:green;">✅ daten.json erfolgreich angelegt!</span>';
+  } else {
+    document.getElementById('init-result').innerHTML = '<span style="color:red;">Fehler: ' + JSON.stringify(res.message || res) + '</span>';
+  }
+}
+
+// ===================== CAMERA =====================
+async function initDesktopCams() {
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    tmp.getTracks().forEach(t => t.stop());
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    desktopCams = devices.filter(d => d.kind === 'videoinput');
+  } catch(e) {}
+}
+
+async function initCam(view) {
+  if (!isMobile && desktopCams.length === 0) await initDesktopCams();
+  await startCam(view);
+  if (!isMobile && desktopCams.length > 1) document.getElementById('btn-switch-' + view).style.display = 'inline-block';
+  if (isMobile) document.getElementById('btn-switch-' + view).style.display = 'inline-block';
+}
+
+async function startCam(view) {
+  if (streams[view]) { streams[view].getTracks().forEach(t => t.stop()); streams[view] = null; }
+  let constraints;
+  if (isMobile) {
+    constraints = { video: { facingMode: { ideal: facings[view] }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
+  } else {
+    const cam = desktopCams[desktopIdxs[view]];
+    constraints = cam
+      ? { video: { deviceId: { exact: cam.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }
+      : { video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
+  }
+  try {
+    streams[view] = await navigator.mediaDevices.getUserMedia(constraints);
+    document.getElementById('video-' + view).srcObject = streams[view];
+    const lbl = isMobile ? (facings[view] === 'environment' ? '🔍 Rückkamera' : '🤳 Frontkamera')
+      : (desktopCams[desktopIdxs[view]] ? (desktopCams[desktopIdxs[view]].label || ('Kamera ' + (desktopIdxs[view]+1))) : 'Kamera');
+    document.getElementById('cam-label-' + view).textContent = lbl;
+  } catch(e) {
+    document.getElementById('cam-label-' + view).textContent = '⚠ Kamera nicht verfügbar';
+  }
+}
+
+async function switchCam(view) {
+  if (isMobile) {
+    facings[view] = facings[view] === 'environment' ? 'user' : 'environment';
+  } else {
+    desktopIdxs[view] = (desktopIdxs[view] + 1) % Math.max(desktopCams.length, 1);
+  }
+  await startCam(view);
+}
+
+function stopCam(view) {
+  if (streams[view]) { streams[view].getTracks().forEach(t => t.stop()); streams[view] = null; }
+}
+
+function captureFrame(view) {
+  const video = document.getElementById('video-' + view);
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth || 1280; c.height = video.videoHeight || 720;
+  c.getContext('2d').drawImage(video, 0, 0);
+  return c.toDataURL('image/jpeg', 0.97);
+}
+
+function showPreview(view, dataUrl) {
+  document.getElementById('video-' + view).style.display = 'none';
+  const img = document.getElementById('cam-preview-' + view);
+  img.src = dataUrl; img.style.display = 'block';
+  document.getElementById('btn-snap-' + view === 'btn-snap-wagen' ? 'btn-snap-wagen' : ('btn-snap-' + view)).style.display = 'none';
+  document.getElementById('btn-switch-' + view).style.display = 'none';
+  document.getElementById('btn-retry-' + view).style.display = 'inline-block';
+}
+
+function hidePreview(view) {
+  document.getElementById('video-' + view).style.display = 'block';
+  document.getElementById('cam-preview-' + view).style.display = 'none';
+  document.getElementById('btn-snap-' + view).style.display = 'inline-block';
+  document.getElementById('btn-switch-' + view).style.display = (isMobile || desktopCams.length > 1) ? 'inline-block' : 'none';
+  document.getElementById('btn-retry-' + view).style.display = 'none';
+}
+
+// ===================== OCR =====================
+async function runOCR(dataUrl, spinnerId, spinnerTextId, progressId) {
+  document.getElementById(spinnerId).classList.add('active');
+  const result = await Tesseract.recognize(dataUrl, 'deu', {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        document.getElementById(spinnerTextId).textContent = 'Text wird erkannt…';
+        document.getElementById(progressId).value = Math.round(m.progress * 100);
+      } else if (m.status === 'loading tesseract core') {
+        document.getElementById(spinnerTextId).textContent = 'OCR-Engine wird geladen…';
+      } else if (m.status === 'loading language traineddata') {
+        document.getElementById(spinnerTextId).textContent = 'Sprachdaten werden geladen…';
       }
-    } else {
-      // Auf Mobilgeräten Wechsel-Button immer anzeigen
-      document.getElementById('btn-switch').style.display = 'inline-block';
     }
+  });
+  document.getElementById(spinnerId).classList.remove('active');
+  return result.data.text;
+}
 
-    await startCam();
+function extractBelegNr(text) {
+  const patterns = [
+    /Beleg[-.\s]*Nr\.{2,}\s*([A-Z0-9][\w\-\/\.]+)/i,
+    /Beleg[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
+    /Beleg[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
+  ];
+  for (const p of patterns) { const m = text.match(p); if (m && m[1] && m[1].length >= 2) return m[1].trim(); }
+  return null;
+}
+
+function extractAwtNr(text) {
+  const patterns = [
+    /AWT[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
+    /AWT[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
+  ];
+  for (const p of patterns) { const m = text.match(p); if (m && m[1] && m[1].length >= 2) return m[1].trim(); }
+  return null;
+}
+
+function extractDLAwtNr(text) {
+  // Letzte Zeile mit großem Fettdruck - wir nehmen die längste Zeile die wie eine AWT-Nummer aussieht
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+  // Suche nach AWT-ähnlichem Muster
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (/^[A-Z0-9][\w\-]{3,}$/i.test(lines[i])) return lines[i];
   }
+  return null;
+}
 
-  async function startCam() {
-    const btn = document.getElementById('btn-switch');
-    btn.disabled = true;
+function extractBestellNr(text) {
+  // Beginnt mit 450
+  const m = text.match(/\b(450\d{4,})\b/);
+  return m ? m[1] : null;
+}
 
-    if (currentStream) {
-      currentStream.getTracks().forEach(t => t.stop());
-      currentStream = null;
-    }
+// ===================== STEP 1: WAGEN =====================
+initCam('wagen');
 
-    let constraints;
-    if (isMobile) {
-      constraints = {
-        video: { facingMode: { ideal: currentFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false
-      };
-    } else {
-      const cam = desktopCameras[desktopCamIndex];
-      constraints = cam
-        ? { video: { deviceId: { exact: cam.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }
-        : { video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
-    }
+let wagenOcrRunning = false;
+async function snapWagen() {
+  if (wagenOcrRunning) return;
+  wagenOcrRunning = true;
+  const dataUrl = captureFrame('wagen');
+  showPreview('wagen', dataUrl);
+  document.getElementById('btn-snap-wagen').style.display = 'none';
 
-    try {
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-      video.srcObject = currentStream;
+  // For barcode/text on wagen label – just OCR it
+  const text = await runOCR(dataUrl, 'spinner-beleg', 'spinner-beleg-text', 'prog-beleg');
+  // Try to find AWT-xxx pattern
+  const m = text.match(/AWT[-\s]?[A-Z0-9]{3,}/i);
+  if (m) {
+    document.getElementById('manual-wagen').value = m[0].replace(/\s/g,'').toUpperCase();
+  } else {
+    showAlert('scan', 'warning', '⚠ Barcode nicht erkannt – bitte manuell eingeben.');
+  }
+  wagenOcrRunning = false;
+}
 
-      // Label setzen
-      if (isMobile) {
-        document.getElementById('cam-label').textContent =
-          currentFacing === 'environment' ? '🔍 Rückkamera' : '🤳 Frontkamera';
-      } else {
-        const cam = desktopCameras[desktopCamIndex];
-        const label = cam ? (cam.label || ('Kamera ' + (desktopCamIndex + 1))) : 'Kamera';
-        const total = desktopCameras.length;
-        document.getElementById('cam-label').textContent =
-          '📷 ' + label + (total > 1 ? '  (' + (desktopCamIndex + 1) + '/' + total + ')' : '');
+function retryWagen() { hidePreview('wagen'); document.getElementById('manual-wagen').value = ''; }
+
+function confirmWagen() {
+  const id = document.getElementById('manual-wagen').value.trim().toUpperCase();
+  if (!id) { showAlert('scan', 'danger', 'Bitte Wagen-ID eingeben!'); return; }
+  scanState.wagenId = id;
+  scanState.belege = [];
+  scanState.durchlaufer = [];
+  stopCam('wagen');
+  setStep(2);
+  document.getElementById('view-step1').style.display = 'none';
+  document.getElementById('view-step2').style.display = 'block';
+  document.getElementById('wagen-header-2').innerHTML = wagenHeaderHTML(id);
+  initCam('beleg');
+  clearAlert('scan');
+}
+
+// ===================== STEP 2: BELEGE =====================
+async function snapBeleg() {
+  const dataUrl = captureFrame('beleg');
+  showPreview('beleg', dataUrl);
+  document.getElementById('btn-snap-beleg').style.display = 'none';
+  const text = await runOCR(dataUrl, 'spinner-beleg', 'spinner-beleg-text', 'prog-beleg');
+  const belegNr = extractBelegNr(text);
+  const awtNr = extractAwtNr(text);
+  if (belegNr) {
+    addBeleg(belegNr, awtNr || '', false);
+    retryBeleg();
+  } else {
+    showAlert('scan', 'warning', '⚠ Beleg-Nr. nicht erkannt. Bitte manuell eingeben oder neu scannen.');
+  }
+}
+
+function retryBeleg() { hidePreview('beleg'); }
+
+function addBeleg(belegNr, awtNr, manual) {
+  if (!belegNr) return;
+  // AWT-Nr Validierung: letzte Stelle darf abweichen
+  if (awtNr && scanState.belege.length > 0) {
+    const existing = scanState.belege.find(b => b.awtNr);
+    if (existing && existing.awtNr) {
+      const a = existing.awtNr.slice(0, -1);
+      const b = awtNr.slice(0, -1);
+      if (a !== b) {
+        showAlert('scan', 'warning', '⚠ AWT-Nr. weicht ab (nicht nur letzte Stelle)! Trotzdem hinzugefügt.');
       }
-    } catch(e) {
-      document.getElementById('cam-label').textContent = '⚠ Kamera nicht verfügbar';
-      alert('Kamera konnte nicht gestartet werden.\nBitte Browsererlaubnis prüfen.');
-    }
-
-    btn.disabled = false;
-  }
-
-  async function switchCamera() {
-    if (isMobile) {
-      currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
-    } else {
-      desktopCamIndex = (desktopCamIndex + 1) % desktopCameras.length;
-    }
-    await startCam();
-  }
-
-  init();
-
-  function snap() {
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.97);
-    preview.src = dataUrl;
-    preview.style.display = 'block';
-    video.style.display = 'none';
-    document.getElementById('cam-label').style.display = 'none';
-    document.getElementById('btn-snap').style.display = 'none';
-    document.getElementById('btn-switch').style.display = 'none';
-    document.getElementById('btn-retry').style.display = 'inline-block';
-    analyzeImage(dataUrl);
-  }
-
-  function retry() {
-    preview.style.display = 'none';
-    video.style.display = 'block';
-    document.getElementById('cam-label').style.display = 'block';
-    document.getElementById('btn-snap').style.display = 'inline-block';
-    document.getElementById('btn-switch').style.display =
-      (isMobile || desktopCameras.length > 1) ? 'inline-block' : 'none';
-    document.getElementById('btn-retry').style.display = 'none';
-    document.getElementById('result-card').style.display = 'none';
-    document.getElementById('spinner').classList.remove('active');
-    document.getElementById('progress-bar').style.display = 'none';
-    document.getElementById('copy-hint').textContent = '';
-    document.getElementById('raw-text-box').style.display = 'none';
-    lastNum = '';
-  }
-
-  function extractBelegNr(text) {
-    const patterns = [
-      /Beleg[-.\s]*Nr\.{2,}\s*([A-Z0-9][\w\-\/\.]+)/i,
-      /Beleg[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
-      /Beleg[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
-    ];
-    for (const p of patterns) {
-      const m = text.match(p);
-      if (m && m[1] && m[1].length >= 2) return m[1].trim();
-    }
-    return null;
-  }
-
-  async function analyzeImage(dataUrl) {
-    document.getElementById('spinner').classList.add('active');
-    document.getElementById('progress-bar').style.display = 'block';
-    document.getElementById('result-card').style.display = 'none';
-    document.getElementById('spinner-text').textContent = 'OCR wird geladen…';
-
-    try {
-      const result = await Tesseract.recognize(dataUrl, 'deu', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            document.getElementById('spinner-text').textContent = 'Text wird erkannt…';
-            document.getElementById('progress').value = Math.round(m.progress * 100);
-          } else if (m.status === 'loading tesseract core') {
-            document.getElementById('spinner-text').textContent = 'OCR-Engine wird geladen…';
-          } else if (m.status === 'loading language traineddata') {
-            document.getElementById('spinner-text').textContent = 'Sprachdaten werden geladen…';
-          }
-        }
-      });
-
-      const rawText = result.data.text;
-      document.getElementById('spinner').classList.remove('active');
-      document.getElementById('progress-bar').style.display = 'none';
-      document.getElementById('result-card').style.display = 'block';
-      document.getElementById('raw-text').value = rawText;
-
-      const nummer = extractBelegNr(rawText);
-
-      if (nummer) {
-        lastNum = nummer;
-        document.getElementById('result-num').textContent = nummer;
-        document.getElementById('result-badge').innerHTML = '<span class="badge badge-ok">✓ Erkannt</span>';
-        document.getElementById('btn-copy').style.display = 'inline-block';
-        document.getElementById('copy-hint').textContent = '';
-        document.getElementById('raw-text-box').style.display = 'none';
-      } else {
-        document.getElementById('result-num').textContent = '—';
-        document.getElementById('result-badge').innerHTML = '<span class="badge badge-warn">⚠ Beleg-Nr. nicht gefunden</span>';
-        document.getElementById('btn-copy').style.display = 'none';
-        document.getElementById('copy-hint').textContent = 'Tipp: Neu aufnehmen – Dokument gerade halten und gut beleuchten.';
-        document.getElementById('raw-text-box').style.display = 'block';
-      }
-
-    } catch(err) {
-      document.getElementById('spinner').classList.remove('active');
-      document.getElementById('progress-bar').style.display = 'none';
-      document.getElementById('result-card').style.display = 'block';
-      document.getElementById('result-num').textContent = '—';
-      document.getElementById('result-badge').innerHTML = '<span class="badge badge-err">✗ Fehler: ' + err.message + '</span>';
-      document.getElementById('btn-copy').style.display = 'none';
     }
   }
+  scanState.belege.push({ belegNr, awtNr, manual });
+  renderBelegList();
+  clearAlert('scan');
+}
 
-  async function copyNum() {
-    if (!lastNum) return;
-    try {
-      await navigator.clipboard.writeText(lastNum);
-      document.getElementById('copy-hint').textContent = '✓ In Zwischenablage kopiert! Jetzt in Excel einfügen (Strg+V).';
-      setTimeout(() => { document.getElementById('copy-hint').textContent = ''; }, 4000);
-    } catch(e) {
-      document.getElementById('copy-hint').textContent = 'Manuell kopieren: ' + lastNum;
-    }
+function addBelegManual() {
+  const nr = document.getElementById('manual-beleg-nr').value.trim();
+  const awt = document.getElementById('manual-beleg-awt').value.trim();
+  if (!nr) { showAlert('scan', 'danger', 'Bitte Beleg-Nr. eingeben!'); return; }
+  addBeleg(nr, awt, true);
+  document.getElementById('manual-beleg-nr').value = '';
+  document.getElementById('manual-beleg-awt').value = '';
+}
+
+function removeBeleg(i) { scanState.belege.splice(i, 1); renderBelegList(); }
+
+function renderBelegList() {
+  const list = document.getElementById('beleg-list');
+  const card = document.getElementById('beleg-list-card');
+  if (scanState.belege.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = scanState.belege.map((b, i) => `
+    <li>
+      <div>
+        <div class="item-label">${b.belegNr}${b.manual ? '<span class="manual-tag">manuell</span>' : ''}</div>
+        ${b.awtNr ? `<div class="item-sub">AWT-Nr: ${b.awtNr}</div>` : ''}
+      </div>
+      <button onclick="removeBeleg(${i})">✕</button>
+    </li>`).join('');
+}
+
+function goStep3() {
+  stopCam('beleg');
+  setStep(3);
+  document.getElementById('view-step2').style.display = 'none';
+  document.getElementById('view-step3').style.display = 'block';
+  document.getElementById('wagen-header-3').innerHTML = wagenHeaderHTML(scanState.wagenId);
+  initCam('dl');
+}
+
+// ===================== STEP 3: DURCHLÄUFER =====================
+async function snapDL() {
+  const dataUrl = captureFrame('dl');
+  showPreview('dl', dataUrl);
+  document.getElementById('btn-snap-dl').style.display = 'none';
+  const text = await runOCR(dataUrl, 'spinner-dl', 'spinner-dl-text', 'prog-dl');
+  const awtNr = extractDLAwtNr(text);
+  const bestellNr = extractBestellNr(text);
+  if (awtNr || bestellNr) {
+    addDL(awtNr || '', bestellNr || '', false);
+    retryDL();
+  } else {
+    showAlert('scan', 'warning', '⚠ Kein Text erkannt. Bitte manuell eingeben oder neu scannen.');
   }
+}
+
+function retryDL() { hidePreview('dl'); }
+
+function addDL(awtNr, bestellNr, manual) {
+  if (!awtNr && !bestellNr) return;
+  // Packstück-Logik: gleiche Nummer mehrfach = 1/x, 2/x
+  const existing = scanState.durchlaufer.filter(d => d.awtNr === awtNr && awtNr);
+  const packNr = existing.length + 1;
+  scanState.durchlaufer.push({ awtNr, bestellNr, packNr, manual });
+  // Update /x for all with same awtNr
+  const total = scanState.durchlaufer.filter(d => d.awtNr === awtNr && awtNr).length;
+  scanState.durchlaufer.forEach(d => { if (d.awtNr === awtNr && awtNr) d.packTotal = total; });
+  renderDLList();
+  clearAlert('scan');
+}
+
+function addDLManual() {
+  const awt = document.getElementById('manual-dl-awt').value.trim();
+  const best = document.getElementById('manual-dl-best').value.trim();
+  if (!awt && !best) { showAlert('scan', 'danger', 'Bitte mindestens eine Nummer eingeben!'); return; }
+  addDL(awt, best, true);
+  document.getElementById('manual-dl-awt').value = '';
+  document.getElementById('manual-dl-best').value = '';
+}
+
+function removeDL(i) {
+  const removed = scanState.durchlaufer.splice(i, 1)[0];
+  // Renumber remaining with same awtNr
+  let cnt = 0;
+  const total = scanState.durchlaufer.filter(d => d.awtNr === removed.awtNr && removed.awtNr).length;
+  scanState.durchlaufer.forEach(d => { if (d.awtNr === removed.awtNr && removed.awtNr) { cnt++; d.packNr = cnt; d.packTotal = total; } });
+  renderDLList();
+}
+
+function renderDLList() {
+  const list = document.getElementById('dl-list');
+  const card = document.getElementById('dl-list-card');
+  if (scanState.durchlaufer.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = scanState.durchlaufer.map((d, i) => `
+    <li>
+      <div>
+        <div class="item-label">${d.awtNr || d.bestellNr}${d.manual ? '<span class="manual-tag">manuell</span>' : ''}
+          ${d.packTotal > 1 ? `<span class="split-badge">${d.packNr}/${d.packTotal}</span>` : ''}
+        </div>
+        ${d.awtNr && d.bestellNr ? `<div class="item-sub">Bestellnr: ${d.bestellNr}</div>` : ''}
+        ${!d.awtNr && d.bestellNr ? `<div class="item-sub">Bestellnr: ${d.bestellNr}</div>` : ''}
+      </div>
+      <button onclick="removeDL(${i})">✕</button>
+    </li>`).join('');
+}
+
+// ===================== STEP 4: ABSCHLUSS =====================
+async function goStep4() {
+  stopCam('dl');
+  setStep(4);
+
+  const cfg = JSON.parse(localStorage.getItem('awt_config') || '{}');
+  ghConfig = { token: cfg.token || '', user: cfg.user || '', repo: cfg.repo || '' };
+
+  if (!ghConfig.token) {
+    showAlert('scan', 'danger', '⚠ Kein GitHub Token! Bitte zuerst Einstellungen ausfüllen.');
+    setStep(3);
+    document.getElementById('view-step3').style.display = 'block';
+    document.getElementById('view-step4').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('view-step3').style.display = 'none';
+  document.getElementById('view-step4').style.display = 'block';
+
+  await loadDB();
+
+  const now = new Date().toLocaleString('de-DE');
+  const wagenId = scanState.wagenId;
+
+  // Split-Logik: prüfen ob Beleg-Nr. bereits existiert
+  scanState.belege.forEach(b => {
+    const prev = dbData.find(r => r.belege && r.belege.find(x => x.belegNr === b.belegNr));
+    if (prev) {
+      // Wagen 1 wird zu 1/2
+      prev.wagenSplit = '1/2';
+      b.wagenSplit = '2/2';
+    }
+  });
+
+  const record = {
+    id: Date.now(),
+    wagenId,
+    zeitstempel: now,
+    belege: scanState.belege,
+    durchlaufer: scanState.durchlaufer,
+    wagenSplit: scanState.belege.some(b => b.wagenSplit) ? scanState.belege.find(b => b.wagenSplit).wagenSplit : null
+  };
+
+  dbData.push(record);
+  const res = await saveDB(`Wagen ${wagenId} - ${now}`);
+
+  const txt = `Wagen: ${wagenId} | ${scanState.belege.length} Beleg(e) | ${scanState.durchlaufer.length} Durchläufer`;
+  document.getElementById('summary-text').textContent = txt;
+  clearAlert('scan');
+}
+
+function resetScan() {
+  scanState = { wagenId: '', belege: [], durchlaufer: [] };
+  setStep(1);
+  ['beleg-list-card','dl-list-card'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('beleg-list').innerHTML = '';
+  document.getElementById('dl-list').innerHTML = '';
+  document.getElementById('manual-wagen').value = '';
+  hidePreview('wagen');
+  document.getElementById('view-step2').style.display = 'none';
+  document.getElementById('view-step3').style.display = 'none';
+  document.getElementById('view-step4').style.display = 'none';
+  document.getElementById('view-step1').style.display = 'block';
+  initCam('wagen');
+}
+
+// ===================== SEARCH =====================
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  await loadDB();
+  renderSearchResults(q);
+}
+
+function renderSearchResults(q) {
+  const el = document.getElementById('search-results');
+  if (!dbData || dbData.length === 0) { el.innerHTML = '<div class="card" style="color:#888;font-size:14px;">Keine Daten vorhanden.</div>'; return; }
+  const results = q ? dbData.filter(r =>
+    r.wagenId?.toLowerCase().includes(q) ||
+    r.belege?.some(b => b.belegNr?.toLowerCase().includes(q) || b.awtNr?.toLowerCase().includes(q)) ||
+    r.durchlaufer?.some(d => d.awtNr?.toLowerCase().includes(q) || d.bestellNr?.toLowerCase().includes(q))
+  ) : dbData;
+
+  if (results.length === 0) { el.innerHTML = '<div class="card" style="color:#888;font-size:14px;">Keine Treffer gefunden.</div>'; return; }
+
+  el.innerHTML = results.slice().reverse().map(r => `
+    <div class="card" style="margin-bottom:0.75rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:18px;font-weight:700;">${r.wagenId} ${r.wagenSplit ? `<span class="split-badge">${r.wagenSplit}</span>` : ''}</span>
+        <span style="font-size:12px;color:#888;">${r.zeitstempel}</span>
+      </div>
+      ${r.belege?.length ? `<div style="font-size:13px;margin-bottom:4px;"><strong>Belege:</strong> ${r.belege.map(b => b.belegNr + (b.awtNr ? ' ('+b.awtNr+')' : '')).join(', ')}</div>` : ''}
+      ${r.durchlaufer?.length ? `<div style="font-size:13px;"><strong>Durchläufer:</strong> ${r.durchlaufer.map(d => (d.awtNr||d.bestellNr) + (d.packTotal>1?' '+d.packNr+'/'+d.packTotal:'')).join(', ')}</div>` : ''}
+    </div>`).join('');
+}
+
+// ===================== EDIT =====================
+async function doEditSearch() {
+  const q = document.getElementById('edit-search').value.trim().toLowerCase();
+  if (!q) { document.getElementById('edit-results').innerHTML = ''; return; }
+  await loadDB();
+  const results = dbData.filter(r =>
+    r.wagenId?.toLowerCase().includes(q) ||
+    r.belege?.some(b => b.belegNr?.toLowerCase().includes(q))
+  );
+  const el = document.getElementById('edit-results');
+  if (results.length === 0) { el.innerHTML = '<div style="font-size:14px;color:#888;padding:0.5rem 0;">Keine Treffer.</div>'; return; }
+  el.innerHTML = results.map(r => {
+    const idx = dbData.indexOf(r);
+    return `<div class="card" style="cursor:pointer;" onclick="openEdit(${idx})">
+      <div style="font-weight:700;">${r.wagenId} ${r.wagenSplit ? `<span class="split-badge">${r.wagenSplit}</span>` : ''}</div>
+      <div style="font-size:13px;color:#666;">${r.zeitstempel} · ${r.belege?.length||0} Beleg(e) · ${r.durchlaufer?.length||0} Durchläufer</div>
+    </div>`;
+  }).join('');
+}
+
+function openEdit(idx) {
+  editingIdx = idx;
+  const r = dbData[idx];
+  document.getElementById('edit-results').innerHTML = '';
+  document.getElementById('edit-form').style.display = 'block';
+  document.getElementById('edit-form-inner').innerHTML = `
+    <div class="field"><label>Wagen-ID</label><input type="text" id="edit-wagenId" value="${r.wagenId}" /></div>
+    <div class="field"><label>Split (z.B. 1/2)</label><input type="text" id="edit-split" value="${r.wagenSplit||''}" placeholder="leer lassen wenn kein Split" /></div>
+    <div class="field"><label>Belege (eine pro Zeile: BelegNr;AwtNr)</label>
+      <textarea id="edit-belege" rows="4">${(r.belege||[]).map(b => b.belegNr + (b.awtNr?';'+b.awtNr:'')).join('\n')}</textarea>
+    </div>
+    <div class="field"><label>Durchläufer (eine pro Zeile: AwtNr;BestellNr)</label>
+      <textarea id="edit-dl" rows="4">${(r.durchlaufer||[]).map(d => (d.awtNr||'') + ';' + (d.bestellNr||'')).join('\n')}</textarea>
+    </div>`;
+}
+
+async function saveEdit() {
+  const r = dbData[editingIdx];
+  r.wagenId = document.getElementById('edit-wagenId').value.trim().toUpperCase();
+  r.wagenSplit = document.getElementById('edit-split').value.trim() || null;
+  r.belege = document.getElementById('edit-belege').value.trim().split('\n').filter(l=>l).map(l => {
+    const [belegNr, awtNr] = l.split(';'); return { belegNr: belegNr?.trim(), awtNr: awtNr?.trim()||'', manual: true };
+  });
+  r.durchlaufer = document.getElementById('edit-dl').value.trim().split('\n').filter(l=>l).map((l,i) => {
+    const [awtNr, bestellNr] = l.split(';'); return { awtNr: awtNr?.trim()||'', bestellNr: bestellNr?.trim()||'', packNr: i+1, manual: true };
+  });
+  await saveDB('Bearbeitet: ' + r.wagenId);
+  document.getElementById('edit-form').style.display = 'none';
+  showAlert('scan', 'success', '✅ Gespeichert!');
+  alert('Datensatz gespeichert!');
+}
+
+async function deleteRecord() {
+  if (!confirm('Datensatz wirklich löschen?')) return;
+  dbData.splice(editingIdx, 1);
+  await saveDB('Datensatz gelöscht');
+  document.getElementById('edit-form').style.display = 'none';
+  alert('Gelöscht!');
+}
+
+function cancelEdit() { document.getElementById('edit-form').style.display = 'none'; }
+
+// ===================== HELPERS =====================
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+function wagenHeaderHTML(id) {
+  return `<div class="wagen-id">🚐 ${id}</div><div class="wagen-sub">Aktiver Wagen</div>`;
+}
+
+function showAlert(page, type, msg) {
+  const el = document.getElementById('alert-' + page);
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function clearAlert(page) {
+  const el = document.getElementById('alert-' + page);
+  el.classList.remove('show');
+}
 </script>
 </body>
 </html>
+HTMLEOF
+echo "done"
