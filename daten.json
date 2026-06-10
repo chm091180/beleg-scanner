@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": 1781069683763,
+    "wagenId": "5015002",
+    "zeitstempel": "10.6.2026, 07:34:43",
+    "belege": [
+      {
+        "belegNr": "498752481",
+        "awtNr": "HA",
+        "manual": false
+      },
+      {
+        "belegNr": "498752474",
+        "awtNr": "",
+        "manual": false
+      }
+    ],
+    "durchlaufer": [],
+    "wagenSplit": null
+  }
+]
