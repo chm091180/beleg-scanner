@@ -16,6 +16,49 @@
       }
     ],
     "durchlaufer": [],
-    "wagenSplit": null
+    "wagenSplit": "1/2"
+  },
+  {
+    "id": 1781073209591,
+    "wagenId": "05015022",
+    "wagenName": "ZLA - 021",
+    "zeitstempel": "10.6.2026, 08:33:29",
+    "belege": [
+      {
+        "belegNr": "498752481",
+        "awtNr": "HA 1013",
+        "manual": false,
+        "_split": "2/2"
+      },
+      {
+        "belegNr": "498792474",
+        "awtNr": "",
+        "manual": false
+      }
+    ],
+    "durchlaufer": [
+      {
+        "awtNr": "",
+        "bestellNr": "4503756556",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      },
+      {
+        "awtNr": "",
+        "bestellNr": "4503747974",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      },
+      {
+        "awtNr": "",
+        "bestellNr": "4503756556",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      }
+    ],
+    "wagenSplit": "2/2"
   }
 ]
