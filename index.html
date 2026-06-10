@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- NAV -->
 <div class="nav">
   <h1>📦 AWT Logistik</h1>
   <button onclick="showPage('scan')"     id="nav-scan"     class="active">Scannen</button>
@@ -41,7 +40,7 @@
         <progress id="prog-wagen" value="0" max="100"></progress>
       </div>
       <div class="btn-row">
-        <button class="btn btn-dark"    id="btn-snap-wagen"   onclick="Scan.snapWagen()">📸 Barcode scannen</button>
+        <button class="btn btn-dark"           id="btn-snap-wagen"   onclick="Scan.snapWagen()">📸 Barcode scannen</button>
         <button class="btn btn-outline btn-sm" id="btn-switch-wagen" onclick="OCR.switchCam('wagen')" style="display:none;">🔄</button>
         <button class="btn btn-outline btn-sm" id="btn-retry-wagen"  onclick="Scan.retryWagen()"      style="display:none;">↩ Neu</button>
       </div>
@@ -49,8 +48,8 @@
     <div class="card">
       <div class="card-title">✏️ Oder manuell eingeben</div>
       <div class="field">
-        <label>AWT-Wagen ID</label>
-        <input type="text" id="manual-wagen" placeholder="z.B. AWT-3X92B" />
+        <label>AWT-Wagen Barcode</label>
+        <input type="text" id="manual-wagen" placeholder="z.B. 05012345" />
       </div>
       <button class="btn btn-dark" onclick="Scan.confirmWagen()">Wagen bestätigen →</button>
     </div>
@@ -69,15 +68,15 @@
         <progress id="prog-beleg" value="0" max="100"></progress>
       </div>
       <div class="btn-row">
-        <button class="btn btn-dark"    id="btn-snap-beleg"   onclick="Scan.snapBeleg()">📸 Beleg scannen</button>
+        <button class="btn btn-dark"           id="btn-snap-beleg"   onclick="Scan.snapBeleg()">📸 Beleg scannen</button>
         <button class="btn btn-outline btn-sm" id="btn-switch-beleg" onclick="OCR.switchCam('beleg')" style="display:none;">🔄</button>
         <button class="btn btn-outline btn-sm" id="btn-retry-beleg"  onclick="Scan.retryBeleg()"      style="display:none;">↩ Neu</button>
       </div>
     </div>
     <div class="card">
       <div class="card-title">✏️ Oder manuell</div>
-      <div class="field"><label>Beleg-Nr.</label><input type="text" id="manual-beleg-nr" placeholder="Beleg-Nr." /></div>
-      <div class="field"><label>AWT-Nr. (optional)</label><input type="text" id="manual-beleg-awt" placeholder="AWT-Nr." /></div>
+      <div class="field"><label>Beleg-Nr.</label><input type="text" id="manual-beleg-nr" placeholder="z.B. 498123456" /></div>
+      <div class="field"><label>AWT-Nr. (optional)</label><input type="text" id="manual-beleg-awt" placeholder="z.B. HA 1013" /></div>
       <button class="btn btn-outline" onclick="Scan.addBelegManual()">+ Beleg hinzufügen</button>
     </div>
     <div class="card" id="beleg-list-card" style="display:none;">
@@ -86,7 +85,8 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-green"   onclick="Scan.goStep3()">Weiter zu Durchläufern →</button>
-      <button class="btn btn-outline" onclick="Scan.goStep3()">Keine Durchläufer – direkt abschließen</button>
+      <button class="btn btn-outline" onclick="Scan.goStep3()">Keine Durchläufer – abschließen</button>
+      <button class="btn btn-back"    onclick="Scan.goBack(1)">← Wagen ändern</button>
     </div>
   </div>
 
@@ -103,15 +103,15 @@
         <progress id="prog-dl" value="0" max="100"></progress>
       </div>
       <div class="btn-row">
-        <button class="btn btn-dark"    id="btn-snap-dl"   onclick="Scan.snapDL()">📸 Etikett scannen</button>
+        <button class="btn btn-dark"           id="btn-snap-dl"   onclick="Scan.snapDL()">📸 Etikett scannen</button>
         <button class="btn btn-outline btn-sm" id="btn-switch-dl" onclick="OCR.switchCam('dl')" style="display:none;">🔄</button>
         <button class="btn btn-outline btn-sm" id="btn-retry-dl"  onclick="Scan.retryDL()"      style="display:none;">↩ Neu</button>
       </div>
     </div>
     <div class="card">
       <div class="card-title">✏️ Oder manuell</div>
-      <div class="field"><label>AWT-Nummer (vom Etikett)</label><input type="text" id="manual-dl-awt" placeholder="AWT-Nummer" /></div>
-      <div class="field"><label>Bestellnummer (beginnt mit 450)</label><input type="text" id="manual-dl-best" placeholder="450..." /></div>
+      <div class="field"><label>AWT-Nr. vom Etikett (z.B. M 1043) – leer lassen wenn nicht vorhanden</label><input type="text" id="manual-dl-awt" placeholder="z.B. M 1043" /></div>
+      <div class="field"><label>Bestellnummer (beginnt mit 450…)</label><input type="text" id="manual-dl-best" placeholder="z.B. 4503756556" /></div>
       <button class="btn btn-outline" onclick="Scan.addDLManual()">+ Durchläufer hinzufügen</button>
     </div>
     <div class="card" id="dl-list-card" style="display:none;">
@@ -120,6 +120,7 @@
     </div>
     <div class="btn-row">
       <button class="btn btn-green" onclick="Scan.finish()">✅ Abschließen &amp; Speichern</button>
+      <button class="btn btn-back"  onclick="Scan.goBack(2)">← Zurück zu Belegen</button>
     </div>
   </div>
 
@@ -132,12 +133,11 @@
       <div id="summary-content" style="display:none;">
         <div style="font-size:56px; margin-bottom:1rem;">✅</div>
         <div style="font-size:20px; font-weight:700; margin-bottom:0.5rem;">Erfolgreich gespeichert!</div>
-        <div id="summary-text" style="font-size:14px; color:#666; margin-bottom:1.5rem;"></div>
+        <div id="summary-text" style="font-size:14px; color:#666; margin-bottom:1.5rem; line-height:1.6;"></div>
         <button class="btn btn-dark" onclick="Scan.reset()">Neuen Wagen erfassen</button>
       </div>
     </div>
   </div>
-
 </div>
 
 <!-- ==================== SUCHE ==================== -->
@@ -145,7 +145,7 @@
   <div class="card">
     <div class="card-title">🔍 Suche</div>
     <div class="field">
-      <label>Beleg-Nr., AWT-Nr., Bestellnummer oder Wagen-ID</label>
+      <label>Beleg-Nr., AWT-Nr., Bestellnummer oder Wagen-Barcode</label>
       <input type="text" id="search-input" placeholder="Suchbegriff eingeben…" oninput="Search.doSearch()" />
     </div>
   </div>
@@ -158,7 +158,7 @@
     <div class="card-title">✏️ Datensatz bearbeiten</div>
     <div class="field">
       <label>Wagen-ID oder Beleg-Nr. suchen</label>
-      <input type="text" id="edit-search" placeholder="z.B. AWT-3X92B" oninput="Search.doEditSearch()" />
+      <input type="text" id="edit-search" placeholder="z.B. 05012345" oninput="Search.doEditSearch()" />
     </div>
   </div>
   <div id="edit-results"></div>
@@ -167,8 +167,8 @@
       <div class="card-title">Datensatz bearbeiten</div>
       <div id="edit-form-inner"></div>
       <div class="btn-row">
-        <button class="btn btn-green"        onclick="Search.saveEdit()">💾 Speichern</button>
-        <button class="btn btn-red btn-sm"   onclick="Search.deleteRecord()">🗑 Löschen</button>
+        <button class="btn btn-green"          onclick="Search.saveEdit()">💾 Speichern</button>
+        <button class="btn btn-red btn-sm"     onclick="Search.deleteRecord()">🗑 Löschen</button>
         <button class="btn btn-outline btn-sm" onclick="Search.cancelEdit()">Abbrechen</button>
       </div>
     </div>
@@ -178,39 +178,61 @@
 <!-- ==================== EINSTELLUNGEN ==================== -->
 <div class="page" id="page-settings">
   <div class="card">
-    <div class="card-title">⚙ GitHub Einstellungen</div>
-    <div class="field">
-      <label>GitHub Personal Access Token</label>
-      <input type="password" id="gh-token" placeholder="ghp_..." />
-    </div>
-    <div class="field">
-      <label>GitHub Benutzername</label>
-      <input type="text" id="gh-user" placeholder="dein-username" />
-    </div>
-    <div class="field">
-      <label>Repository Name</label>
-      <input type="text" id="gh-repo" placeholder="beleg-scanner" />
-    </div>
-    <button class="btn btn-dark" onclick="Settings.save()">💾 Speichern</button>
-    <div class="settings-info" style="margin-top:10px;">
-      Token erstellen unter <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a>
-      → Classic Token → Haken bei <strong>repo</strong>
+    <div class="card-title">⚙ GitHub Verbindung</div>
+    <div class="field"><label>Personal Access Token</label><input type="password" id="gh-token" placeholder="ghp_..." /></div>
+    <div class="field"><label>GitHub Benutzername</label><input type="text" id="gh-user" placeholder="dein-username" /></div>
+    <div class="field"><label>Repository Name</label><input type="text" id="gh-repo" placeholder="beleg-scanner" /></div>
+    <div class="settings-info">
+      Token unter <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → Classic Token → Haken bei <strong>repo</strong>
     </div>
   </div>
+
   <div class="card">
-    <div class="card-title">Datenbank initialisieren</div>
-    <p style="font-size:14px;color:#666;margin-bottom:12px;">
-      Erstellt <code>daten.json</code> im Repository – nur einmalig nötig.
+    <div class="card-title">📋 Erkennungs-Regeln</div>
+    <div class="settings-section">Wagen-Barcode</div>
+    <div class="field-row">
+      <div class="field"><label>Beginnt mit</label><input type="text" id="wagen-prefix" placeholder="050" /></div>
+      <div class="field"><label>Gesamtlänge (Stellen)</label><input type="number" id="wagen-length" placeholder="8" /></div>
+    </div>
+    <div class="settings-section">Beleg-Nr.</div>
+    <div class="field-row">
+      <div class="field"><label>Beginnt mit</label><input type="text" id="beleg-prefix" placeholder="498" /></div>
+      <div class="field"><label>Gesamtlänge (Stellen)</label><input type="number" id="beleg-length" placeholder="9" /></div>
+    </div>
+    <div class="settings-section">Bestellnummer (Durchläufer)</div>
+    <div class="field-row">
+      <div class="field"><label>Beginnt mit</label><input type="text" id="bestell-prefix" placeholder="450" /></div>
+      <div class="field"><label>Gesamtlänge (Stellen)</label><input type="number" id="bestell-length" placeholder="10" /></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-dark" onclick="Settings.save()">💾 Einstellungen speichern</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚐 Wagenliste (inventare.csv)</div>
+    <p style="font-size:14px;color:#666;margin-bottom:10px;">
+      Lade die Datei <code>inventare.csv</code> in dein GitHub-Repository hoch.<br>
+      Benötigte Spalten: <strong>Barcode</strong> und <strong>Inventar-Bezeichnung</strong>
     </p>
-    <button class="btn btn-blue" onclick="Settings.initDB()">🗄 Datenbank anlegen</button>
+    <div class="btn-row">
+      <button class="btn btn-blue" onclick="Settings.ladeWagenliste()">🔄 Wagenliste laden</button>
+    </div>
+    <div id="wagen-liste-status" style="margin-top:10px;font-size:14px;color:#666;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗄 Datenbank</div>
+    <p style="font-size:14px;color:#666;margin-bottom:12px;">Erstellt <code>daten.json</code> – nur einmalig nötig.</p>
+    <button class="btn btn-blue" onclick="Settings.initDB()">Datenbank anlegen</button>
     <div id="init-result" style="margin-top:10px;font-size:14px;"></div>
   </div>
 </div>
 
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="db.js"></script>
 <script src="ocr.js"></script>
+<script src="wagenliste.js"></script>
 <script src="scan.js"></script>
 <script src="search.js"></script>
 <script src="settings.js"></script>
@@ -221,11 +243,21 @@
     document.getElementById('page-' + p).classList.add('active');
     document.getElementById('nav-' + p).classList.add('active');
     if (p === 'settings') Settings.load();
-    if (p === 'scan') Scan.init();
   }
+
+  // Step-Klick Navigation (nur erledigte Steps)
+  document.addEventListener('click', e => {
+    const step = e.target.closest('.step.done');
+    if (!step) return;
+    const n = parseInt(step.id.replace('step', ''));
+    if (n === 1) Scan.goBack(1);
+    else if (n === 2) Scan.goBack(2);
+  });
 
   // Start
   Scan.init();
+  // Wagenliste im Hintergrund vorladen
+  WagenListe.load();
 </script>
 </body>
 </html>

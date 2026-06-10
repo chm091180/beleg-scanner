@@ -23,14 +23,12 @@ const OCR = (() => {
     facings[viewId] = facings[viewId] || 'environment';
     desktopIdxs[viewId] = desktopIdxs[viewId] || 0;
     await _startStream(viewId);
-
     const btn = document.getElementById('btn-switch-' + viewId);
-    if (btn) btn.style.display = (isMobile || desktopCams.length > 1) ? 'inline-block' : 'none';
+    if (btn) btn.style.display = (isMobile || desktopCams.length > 1) ? 'inline-flex' : 'none';
   }
 
   async function _startStream(viewId) {
     if (streams[viewId]) { streams[viewId].getTracks().forEach(t => t.stop()); streams[viewId] = null; }
-
     let constraints;
     if (isMobile) {
       constraints = { video: { facingMode: { ideal: facings[viewId] }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
@@ -40,7 +38,6 @@ const OCR = (() => {
         ? { video: { deviceId: { exact: cam.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }
         : { video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false };
     }
-
     try {
       streams[viewId] = await navigator.mediaDevices.getUserMedia(constraints);
       document.getElementById('video-' + viewId).srcObject = streams[viewId];
@@ -60,7 +57,7 @@ const OCR = (() => {
       const cam = desktopCams[desktopIdxs[viewId]];
       const name = cam ? (cam.label || ('Kamera ' + (desktopIdxs[viewId] + 1))) : 'Kamera';
       const total = desktopCams.length;
-      lbl.textContent = '📷 ' + name + (total > 1 ? '  (' + (desktopIdxs[viewId] + 1) + '/' + total + ')' : '');
+      lbl.textContent = '📷 ' + name + (total > 1 ? ' (' + (desktopIdxs[viewId] + 1) + '/' + total + ')' : '');
     }
   }
 
@@ -136,43 +133,86 @@ const OCR = (() => {
   }
 
   // ---- Extraktoren ----
+
+  // Wagen-Barcode: 8-stellig, beginnt mit konfigurierbarem Präfix (Standard: 050)
+  function extractWagenBarcode(text) {
+    const cfg = JSON.parse(localStorage.getItem('awt_config') || '{}');
+    const prefix = cfg.wagenPrefix || '050';
+    const len = parseInt(cfg.wagenLength || '8');
+    const re = new RegExp('\\b(' + prefix + '\\d{' + (len - prefix.length) + '})\\b');
+    const m = text.match(re);
+    return m ? m[1] : null;
+  }
+
+  // Beleg-Nr: konfigurierbare Länge und Präfix (Standard: 9-stellig, beginnt mit 498)
   function extractBelegNr(text) {
+    const cfg = JSON.parse(localStorage.getItem('awt_config') || '{}');
+    const prefix = cfg.belegPrefix || '498';
+    const len = parseInt(cfg.belegLength || '9');
+    // Zuerst nach Stichwort suchen
     const patterns = [
       /Beleg[-.\s]*Nr\.{2,}\s*([A-Z0-9][\w\-\/\.]+)/i,
       /Beleg[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
       /Beleg[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
     ];
-    for (const p of patterns) { const m = text.match(p); if (m && m[1]?.length >= 2) return m[1].trim(); }
-    return null;
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m && m[1]?.length >= 2) {
+        // Bereinigen: nur Ziffern wenn Präfix numerisch
+        const raw = m[1].replace(/[^A-Z0-9]/gi, '');
+        if (raw.startsWith(prefix) && raw.length === len) return raw;
+        if (m[1].trim().length >= 2) return m[1].trim(); // fallback
+      }
+    }
+    // Fallback: direkte Suche nach Muster im Text
+    const re = new RegExp('\\b(' + prefix + '\\d{' + (len - prefix.length) + '})\\b');
+    const m2 = text.match(re);
+    return m2 ? m2[1] : null;
   }
 
+  // AWT-Nr aus Kommissionierbeleg: z.B. "HA 1013" – Buchstaben + Leerzeichen + Ziffern
   function extractAwtNr(text) {
     const patterns = [
-      /AWT[-.\s]*Nr[.\s:]+([A-Z0-9][\w\-\/\.]+)/i,
-      /AWT[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z0-9][\w\-\/\.]+)/i,
+      // Stichwort "AWT-Nr:" gefolgt von Wert (mit Leerzeichen im Wert erlaubt)
+      /AWT[-.\s]*Nr[.\s:]+([A-Z]{1,3}\s*\d{3,6})/i,
+      /AWT[-.\s]*Nr[.\s:]+([A-Z0-9][\w\s\-\/\.]{1,15})/i,
+      /AWT[-.\s]*Nr[^\n\r]{0,5}?\s+([A-Z]{1,3}\s*\d{3,6})/i,
     ];
-    for (const p of patterns) { const m = text.match(p); if (m && m[1]?.length >= 2) return m[1].trim(); }
-    return null;
-  }
-
-  function extractDLAwtNr(text) {
-    // Letzte nicht-leere Zeile die wie eine ID aussieht (AWT-Nummer fett unten)
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
-    for (let i = lines.length - 1; i >= 0; i--) {
-      if (/^[A-Z0-9][\w\-]{3,}$/i.test(lines[i])) return lines[i];
+    for (const p of patterns) {
+      const m = text.match(p);
+      if (m && m[1]?.trim().length >= 2) return m[1].trim();
     }
     return null;
   }
 
+  // Durchläufer-Etikett: AWT-Nr unten links, groß (z.B. "M 1043")
+  // Muster: 1-3 Großbuchstaben, Leerzeichen, 3-5 Ziffern – in den letzten Zeilen
+  function extractDLAwtNr(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+    // Von unten suchen – AWT-Nr ist die letzte große Zeile
+    for (let i = lines.length - 1; i >= 0; i--) {
+      // Muster: "M 1043" oder "HA 1013" – Buchstaben + optional Leerzeichen + Ziffern
+      const m = lines[i].match(/^([A-Z]{1,3}\s{0,2}\d{3,5})$/i);
+      if (m) return m[1].trim();
+    }
+    // Breiterer Fallback: irgendwo im Text
+    const m = text.match(/\b([A-Z]{1,3}\s{1,2}\d{3,5})\b/);
+    return m ? m[1].trim() : null;
+  }
+
+  // Bestellnummer: konfigurierbare Länge und Präfix (Standard: 10-stellig, beginnt mit 450)
   function extractBestellNr(text) {
-    const m = text.match(/\b(450\d{4,})\b/);
+    const cfg = JSON.parse(localStorage.getItem('awt_config') || '{}');
+    const prefix = cfg.bestellPrefix || '450';
+    const len = parseInt(cfg.bestellLength || '10');
+    const re = new RegExp('\\b(' + prefix + '\\d{' + (len - prefix.length) + '})\\b');
+    const m = text.match(re);
     return m ? m[1] : null;
   }
 
-  function extractWagenId(text) {
-    const m = text.match(/AWT[-\s]?[A-Z0-9]{3,}/i);
-    return m ? m[0].replace(/\s/g, '').toUpperCase() : null;
-  }
-
-  return { start, stop, switchCam, capture, showPreview, hidePreview, recognize, extractBelegNr, extractAwtNr, extractDLAwtNr, extractBestellNr, extractWagenId };
+  return {
+    start, stop, switchCam, capture, showPreview, hidePreview, recognize,
+    extractWagenBarcode, extractBelegNr, extractAwtNr,
+    extractDLAwtNr, extractBestellNr
+  };
 })();

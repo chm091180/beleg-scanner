@@ -1,18 +1,17 @@
 // scan.js – Scan-Workflow (Schritt 1–4)
 
 const Scan = (() => {
-  let state = { wagenId: '', belege: [], durchlaufer: [] };
+  let state = { wagenId: '', wagenName: '', belege: [], durchlaufer: [] };
 
   function init() {
     OCR.start('wagen');
   }
 
-  // ---- Helpers ----
   function showAlert(type, msg) {
     const el = document.getElementById('alert-scan');
     el.className = 'alert alert-' + type + ' show';
     el.textContent = msg;
-    setTimeout(() => el.classList.remove('show'), 5000);
+    setTimeout(() => el.classList.remove('show'), 6000);
   }
 
   function clearAlert() {
@@ -28,8 +27,9 @@ const Scan = (() => {
     }
   }
 
-  function wagenHeaderHTML(id) {
-    return `<div class="wagen-id">🚐 ${id}</div><div class="wagen-sub">Aktiver Wagen</div>`;
+  function wagenHeaderHTML(id, name) {
+    const namePart = name ? `<div class="wagen-name">🏷 ${name}</div>` : '';
+    return `<div class="wagen-id">🚐 ${id}</div>${namePart}<div class="wagen-sub">Aktiver Wagen</div>`;
   }
 
   function showView(n) {
@@ -40,17 +40,31 @@ const Scan = (() => {
     setStep(n);
   }
 
+  // Navigation zurück
+  function goBack(toStep) {
+    if (toStep === 1) {
+      OCR.stop('beleg');
+      showView(1);
+      OCR.start('wagen');
+    } else if (toStep === 2) {
+      OCR.stop('dl');
+      showView(2);
+      document.getElementById('wagen-header-2').innerHTML = wagenHeaderHTML(state.wagenId, state.wagenName);
+      OCR.start('beleg');
+    }
+  }
+
   // ---- STEP 1: WAGEN ----
   async function snapWagen() {
     const dataUrl = OCR.capture('wagen');
     OCR.showPreview('wagen', dataUrl);
     const text = await OCR.recognize(dataUrl, 'spinner-wagen', 'spinner-wagen-text', 'prog-wagen');
-    const id = OCR.extractWagenId(text);
+    const id = OCR.extractWagenBarcode(text);
     if (id) {
       document.getElementById('manual-wagen').value = id;
       clearAlert();
     } else {
-      showAlert('warning', '⚠ Wagen-ID nicht erkannt – bitte manuell eingeben.');
+      showAlert('warning', '⚠ Barcode nicht erkannt – bitte manuell eingeben.');
     }
   }
 
@@ -59,19 +73,29 @@ const Scan = (() => {
     document.getElementById('manual-wagen').value = '';
   }
 
-  function confirmWagen() {
+  async function confirmWagen() {
     const id = document.getElementById('manual-wagen').value.trim().toUpperCase();
     if (!id) { showAlert('danger', 'Bitte Wagen-ID eingeben!'); return; }
+
+    // Wagenliste prüfen
+    const wagenName = await WagenListe.lookup(id);
     state.wagenId = id;
+    state.wagenName = wagenName || '';
     state.belege = [];
     state.durchlaufer = [];
+
+    if (wagenName) {
+      showAlert('success', '✅ Bekannter Wagen: ' + wagenName);
+    } else {
+      showAlert('warning', '⚠ Wagen nicht in der Liste – trotzdem fortgefahren.');
+    }
+
     OCR.stop('wagen');
     showView(2);
-    document.getElementById('wagen-header-2').innerHTML = wagenHeaderHTML(id);
+    document.getElementById('wagen-header-2').innerHTML = wagenHeaderHTML(id, wagenName);
     document.getElementById('beleg-list-card').style.display = 'none';
     document.getElementById('beleg-list').innerHTML = '';
     OCR.start('beleg');
-    clearAlert();
   }
 
   // ---- STEP 2: BELEGE ----
@@ -96,8 +120,8 @@ const Scan = (() => {
     if (!belegNr) return;
     if (awtNr && state.belege.length > 0) {
       const existing = state.belege.find(b => b.awtNr);
-      if (existing?.awtNr && awtNr.slice(0, -1) !== existing.awtNr.slice(0, -1)) {
-        showAlert('warning', '⚠ AWT-Nr. weicht stark ab (nicht nur letzte Stelle)!');
+      if (existing?.awtNr && awtNr.replace(/\s/g,'').slice(0, -1) !== existing.awtNr.replace(/\s/g,'').slice(0, -1)) {
+        showAlert('warning', '⚠ AWT-Nr. weicht ab (nicht nur letzte Stelle)!');
       }
     }
     state.belege.push({ belegNr, awtNr, manual });
@@ -134,7 +158,7 @@ const Scan = (() => {
   function goStep3() {
     OCR.stop('beleg');
     showView(3);
-    document.getElementById('wagen-header-3').innerHTML = wagenHeaderHTML(state.wagenId);
+    document.getElementById('wagen-header-3').innerHTML = wagenHeaderHTML(state.wagenId, state.wagenName);
     document.getElementById('dl-list-card').style.display = 'none';
     document.getElementById('dl-list').innerHTML = '';
     OCR.start('dl');
@@ -160,10 +184,9 @@ const Scan = (() => {
 
   function addDL(awtNr, bestellNr, manual) {
     if (!awtNr && !bestellNr) return;
-    const sameAwtCount = state.durchlaufer.filter(d => d.awtNr === awtNr && awtNr).length;
-    const packNr = sameAwtCount + 1;
+    const sameCount = state.durchlaufer.filter(d => d.awtNr === awtNr && awtNr).length;
+    const packNr = sameCount + 1;
     state.durchlaufer.push({ awtNr, bestellNr, packNr, packTotal: packNr, manual });
-    // Alle mit gleicher awtNr aktualisieren
     const total = state.durchlaufer.filter(d => d.awtNr === awtNr && awtNr).length;
     state.durchlaufer.forEach(d => { if (d.awtNr === awtNr && awtNr) d.packTotal = total; });
     renderDLList();
@@ -235,6 +258,7 @@ const Scan = (() => {
     const record = {
       id: Date.now(),
       wagenId: state.wagenId,
+      wagenName: state.wagenName,
       zeitstempel: now,
       belege: state.belege,
       durchlaufer: state.durchlaufer,
@@ -246,21 +270,23 @@ const Scan = (() => {
 
     document.getElementById('summary-spinner').style.display = 'none';
     document.getElementById('summary-content').style.display = 'block';
-    document.getElementById('summary-text').textContent =
-      `Wagen: ${state.wagenId} | ${state.belege.length} Beleg(e) | ${state.durchlaufer.length} Durchläufer`;
+    document.getElementById('summary-text').innerHTML =
+      `<strong>${state.wagenId}</strong>${state.wagenName ? ' · ' + state.wagenName : ''}<br>` +
+      `${state.belege.length} Beleg(e) · ${state.durchlaufer.length} Durchläufer`;
   }
 
   function reset() {
-    state = { wagenId: '', belege: [], durchlaufer: [] };
+    state = { wagenId: '', wagenName: '', belege: [], durchlaufer: [] };
     document.getElementById('manual-wagen').value = '';
     OCR.hidePreview('wagen');
     showView(1);
+    clearAlert();
     OCR.start('wagen');
   }
 
   return {
     init, snapWagen, retryWagen, confirmWagen,
-    snapBeleg, retryBeleg, addBelegManual, removeBeleg, goStep3,
+    snapBeleg, retryBeleg, addBelegManual, removeBeleg, goStep3, goBack,
     snapDL, retryDL, addDLManual, removeDL, finish, reset
   };
 })();
