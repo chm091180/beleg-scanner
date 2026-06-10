@@ -97,5 +97,42 @@
       }
     ],
     "wagenSplit": "2/2"
+  },
+  {
+    "id": 1781090587807,
+    "wagenId": "05015026",
+    "wagenName": "ZLA - 025",
+    "zeitstempel": "10.6.2026, 13:23:07",
+    "belege": [
+      {
+        "belegNr": "498752888",
+        "awtNr": "",
+        "manual": false
+      }
+    ],
+    "durchlaufer": [
+      {
+        "awtNr": "s 20276",
+        "bestellNr": "4503744368",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      },
+      {
+        "awtNr": "",
+        "bestellNr": "4503756556",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      },
+      {
+        "awtNr": "",
+        "bestellNr": "4503747974",
+        "packNr": 1,
+        "packTotal": 1,
+        "manual": false
+      }
+    ],
+    "wagenSplit": null
   }
 ]
